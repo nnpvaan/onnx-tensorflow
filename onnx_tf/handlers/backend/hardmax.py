@@ -1,14 +1,20 @@
 import numpy as np
 import tensorflow as tf
-import tensorflow_addons as tfa
 
 from onnx_tf.handlers.backend_handler import BackendHandler
 from onnx_tf.handlers.handler import onnx_op
 from onnx_tf.handlers.handler import tf_func
 
+def hardmax(logits, axis=-1):
+    """
+    Computes hardmax activations.
+    """
+    logits_max = tf.reduce_max(logits, axis=axis, keepdims=True)
+    mask = tf.cast(tf.equal(logits, logits_max), logits.dtype)
+    normalized = mask / tf.reduce_sum(mask, axis=axis, keepdims=True)
+    return normalized
 
 @onnx_op("Hardmax")
-@tf_func(tfa.seq2seq.hardmax)
 class Hardmax(BackendHandler):
 
   @classmethod
@@ -26,7 +32,7 @@ class Hardmax(BackendHandler):
       cal_shape = (tf.reduce_prod(shape[0:axis]),
                    tf.reduce_prod(shape[axis:tf.size(shape)]))
       x = tf.reshape(x, cal_shape)
-      return [tf.reshape(tfa.seq2seq.hardmax(x), shape)]
+      return [tf.reshape(hardmax(x), shape)]
 
     else: # opset 13
       axis = node.attrs.get("axis", -1) # default for axis is -1 in opset 13
@@ -40,7 +46,7 @@ class Hardmax(BackendHandler):
       perm = tf.concat([perm1, [len(tf.shape(x)) - 1], perm2, [axis]], -1)
       x = tf.transpose(x, perm)
 
-      return [tf.transpose(tfa.seq2seq.hardmax(x), perm)]
+      return [tf.transpose(hardmax(x), perm)]
 
   @classmethod
   def version_1(cls, node, **kwargs):

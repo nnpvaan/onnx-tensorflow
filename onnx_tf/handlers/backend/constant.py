@@ -75,3 +75,7 @@ class Constant(BackendHandler):
   @classmethod
   def version_13(cls, node, **kwargs):
     return cls.version_12(node, **kwargs)
+
+  @classmethod
+  def version_21(cls, node, **kwargs):
+    return cls.version_13(node, **kwargs)
