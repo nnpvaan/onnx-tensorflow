@@ -21,19 +21,21 @@ class Shape(BackendHandler):
 
     x = kwargs["tensor_dict"][node.inputs[0]]
     x_shape = tf_shape(x)
-    x_rank = len(x_shape)
+    x_rank = tf.size(x_shape)
 
     start = node.attrs.get("start", 0)
     if start < 0:
-      start += x_rank
-      # Clip if start is still < 0
-      start = 0 if start < 0 else start
+      start = tf.maximum(0, start + x_rank)
+    else:
+      start = tf.minimum(start, x_rank)
 
-    end = node.attrs.get("end", x_rank)
-    if end < 0:
-      end += x_rank
-      # Clip if end is still < 0
-      end = 0 if end < 0 else end
+    end = node.attrs.get("end", None)
+    if end is None:
+      end = x_rank
+    elif end < 0:
+      end = tf.maximum(0, end + x_rank)
+    else:
+      end = tf.minimum(end, x_rank)
 
 
     result = cls.make_tensor_from_onnx_node(node, **kwargs)
@@ -50,4 +52,8 @@ class Shape(BackendHandler):
 
   @classmethod
   def version_15(cls, node, **kwargs):
-    return cls._common(node, **kwargs) 
+    return cls._common(node, **kwargs)
+
+  @classmethod
+  def version_21(cls, node, **kwargs):
+    return cls._common(node, **kwargs)

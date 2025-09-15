@@ -42,3 +42,8 @@ class Squeeze(BackendHandler):
       x = tf.reshape(x, reshape_x)
 
     return [x]
+
+  @classmethod
+  def version_21(cls, node, **kwargs):
+    # Version 21 uses the same implementation as version 13
+    return cls.version_13(node, **kwargs)

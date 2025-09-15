@@ -53,10 +53,25 @@ class Handler(object):
     :param kwargs: Other args.
     :return: TensorflowNode for backend.
     """
-    ver_handle = getattr(cls, "version_{}".format(cls.SINCE_VERSION), None)
-    if ver_handle:
+    # Get the version directly to avoid autograph issues with getattr
+    version_method_name = "version_{}".format(cls.SINCE_VERSION)
+    
+    # Use a more explicit approach to avoid autograph transformation issues
+    if hasattr(cls, version_method_name):
       cls.args_check(node, **kwargs)
-      return ver_handle(node, **kwargs)
+      # Use __dict__ to get the unbound method and call it explicitly
+      version_method = cls.__dict__.get(version_method_name)
+      if version_method is not None:
+        # If it's a classmethod, we need to call it with cls as first argument
+        if hasattr(version_method, '__func__'):
+          return version_method.__func__(cls, node, **kwargs)
+        else:
+          # It's already an unbound function
+          return version_method(cls, node, **kwargs)
+      else:
+        # Fallback to getattr if not in __dict__ (inherited methods)
+        version_method = getattr(cls, version_method_name)
+        return version_method(node, **kwargs)
 
     raise BackendIsNotSupposedToImplementIt("{} version {} is not implemented.".format(node.op_type, cls.SINCE_VERSION))
 
